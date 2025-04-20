@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Search, User, ShoppingBag } from "lucide-react"
@@ -6,75 +9,28 @@ import { Input } from "@/components/ui/input"
 import MainMenu from "@/components/main-menu"
 import Footer from "@/components/footer"
 import ProductCard from "@/components/product-card"
+import { useProducts } from "@/hooks/use-products"
 
 // Definimos las categorías válidas
 const validCategories = ["hombre", "mujer", "ninos", "accesorios"]
 
-// Datos de ejemplo para cada categoría
-const categoryData = {
+// Títulos y descripciones para cada categoría
+const categoryInfo = {
   hombre: {
     title: "Ropa para Hombre",
     description: "Descubre nuestra colección de ropa sustentable para hombre.",
-    products: Array(8)
-      .fill(0)
-      .map((_, i) => ({
-        id: i + 1,
-        name: `Producto para hombre ${i + 1}`,
-        price: 29.99 + i * 5,
-        image: "/placeholder.svg?height=300&width=300",
-        category: "Hombre",
-        condition: i % 2 === 0 ? "Nuevo" : "Usado",
-        seller: `Vendedor ${i + 1}`,
-        rating: 4 + Math.random(),
-      })),
   },
   mujer: {
     title: "Ropa para Mujer",
     description: "Explora nuestra selección de moda sustentable para mujer.",
-    products: Array(8)
-      .fill(0)
-      .map((_, i) => ({
-        id: i + 100,
-        name: `Producto para mujer ${i + 1}`,
-        price: 34.99 + i * 5,
-        image: "/placeholder.svg?height=300&width=300",
-        category: "Mujer",
-        condition: i % 2 === 0 ? "Nuevo" : "Usado",
-        seller: `Vendedor ${i + 10}`,
-        rating: 4 + Math.random(),
-      })),
   },
   ninos: {
     title: "Ropa para Niños",
     description: "Ropa cómoda y sustentable para los más pequeños.",
-    products: Array(8)
-      .fill(0)
-      .map((_, i) => ({
-        id: i + 200,
-        name: `Producto para niños ${i + 1}`,
-        price: 19.99 + i * 3,
-        image: "/placeholder.svg?height=300&width=300",
-        category: "Niños",
-        condition: i % 2 === 0 ? "Nuevo" : "Usado",
-        seller: `Vendedor ${i + 20}`,
-        rating: 4 + Math.random(),
-      })),
   },
   accesorios: {
     title: "Accesorios",
     description: "Complementa tu estilo con nuestros accesorios sustentables.",
-    products: Array(8)
-      .fill(0)
-      .map((_, i) => ({
-        id: i + 300,
-        name: `Accesorio ${i + 1}`,
-        price: 14.99 + i * 2,
-        image: "/placeholder.svg?height=300&width=300",
-        category: "Accesorios",
-        condition: i % 2 === 0 ? "Nuevo" : "Usado",
-        seller: `Vendedor ${i + 30}`,
-        rating: 4 + Math.random(),
-      })),
   },
 }
 
@@ -84,9 +40,49 @@ export default function CategoryPage({ params }: { params: { category: string } 
     notFound()
   }
 
+  const { products, loading, error, fetchProducts } = useProducts()
+  const [condition, setCondition] = useState("todos")
+  const [priceRange, setPriceRange] = useState("todos")
+  const [sortBy, setSortBy] = useState("relevancia")
+
   // Obtener datos de la categoría
-  const category = params.category as keyof typeof categoryData
-  const { title, description, products } = categoryData[category]
+  const category = params.category as keyof typeof categoryInfo
+  const { title, description } = categoryInfo[category]
+
+  useEffect(() => {
+    // Cargar productos al montar el componente
+    fetchProducts({ category: params.category })
+  }, [fetchProducts, params.category])
+
+  const handleFilterChange = () => {
+    // Construir filtros basados en las selecciones del usuario
+    const filters: any = { category: params.category }
+
+    if (condition !== "todos") {
+      filters.condition = condition
+    }
+
+    if (priceRange !== "todos") {
+      switch (priceRange) {
+        case "menos20":
+          filters.maxPrice = 20
+          break
+        case "20a50":
+          filters.minPrice = 20
+          filters.maxPrice = 50
+          break
+        case "50a100":
+          filters.minPrice = 50
+          filters.maxPrice = 100
+          break
+        case "mas100":
+          filters.minPrice = 100
+          break
+      }
+    }
+
+    fetchProducts(filters)
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -138,66 +134,113 @@ export default function CategoryPage({ params }: { params: { category: string } 
             <p className="text-gray-600">{description}</p>
           </div>
 
-          {/* Filters (simplified) */}
+          {/* Filters */}
           <div className="mb-8 p-4 bg-gray-50 rounded-lg">
             <div className="flex flex-wrap gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Condición</label>
-                <select className="border rounded p-2 text-sm">
-                  <option>Todos</option>
-                  <option>Nuevo</option>
-                  <option>Usado</option>
+                <select
+                  className="border rounded p-2 text-sm"
+                  value={condition}
+                  onChange={(e) => {
+                    setCondition(e.target.value)
+                    handleFilterChange()
+                  }}
+                >
+                  <option value="todos">Todos</option>
+                  <option value="nuevo">Nuevo</option>
+                  <option value="usado">Usado</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Precio</label>
-                <select className="border rounded p-2 text-sm">
-                  <option>Todos</option>
-                  <option>Menos de $20</option>
-                  <option>$20 - $50</option>
-                  <option>$50 - $100</option>
-                  <option>Más de $100</option>
+                <select
+                  className="border rounded p-2 text-sm"
+                  value={priceRange}
+                  onChange={(e) => {
+                    setPriceRange(e.target.value)
+                    handleFilterChange()
+                  }}
+                >
+                  <option value="todos">Todos</option>
+                  <option value="menos20">Menos de $20</option>
+                  <option value="20a50">$20 - $50</option>
+                  <option value="50a100">$50 - $100</option>
+                  <option value="mas100">Más de $100</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Ordenar por</label>
-                <select className="border rounded p-2 text-sm">
-                  <option>Relevancia</option>
-                  <option>Precio: menor a mayor</option>
-                  <option>Precio: mayor a menor</option>
-                  <option>Más recientes</option>
+                <select
+                  className="border rounded p-2 text-sm"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
+                  <option value="relevancia">Relevancia</option>
+                  <option value="precio_asc">Precio: menor a mayor</option>
+                  <option value="precio_desc">Precio: mayor a menor</option>
+                  <option value="recientes">Más recientes</option>
                 </select>
               </div>
             </div>
           </div>
 
+          {/* Loading and Error States */}
+          {loading && (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
+              <p className="mt-2 text-gray-600">Cargando productos...</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="text-center py-8 text-red-600">
+              <p>{error}</p>
+              <Button variant="outline" className="mt-4" onClick={() => fetchProducts({ category: params.category })}>
+                Intentar de nuevo
+              </Button>
+            </div>
+          )}
+
           {/* Products Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {!loading && !error && (
+            <>
+              {products.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">No se encontraron productos para esta categoría.</p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {products.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
 
           {/* Pagination */}
-          <div className="mt-8 flex justify-center">
-            <nav className="flex items-center gap-1">
-              <Button variant="outline" size="sm" disabled>
-                Anterior
-              </Button>
-              <Button variant="outline" size="sm" className="bg-green-50">
-                1
-              </Button>
-              <Button variant="outline" size="sm">
-                2
-              </Button>
-              <Button variant="outline" size="sm">
-                3
-              </Button>
-              <Button variant="outline" size="sm">
-                Siguiente
-              </Button>
-            </nav>
-          </div>
+          {products.length > 0 && (
+            <div className="mt-8 flex justify-center">
+              <nav className="flex items-center gap-1">
+                <Button variant="outline" size="sm" disabled>
+                  Anterior
+                </Button>
+                <Button variant="outline" size="sm" className="bg-green-50">
+                  1
+                </Button>
+                <Button variant="outline" size="sm">
+                  2
+                </Button>
+                <Button variant="outline" size="sm">
+                  3
+                </Button>
+                <Button variant="outline" size="sm">
+                  Siguiente
+                </Button>
+              </nav>
+            </div>
+          )}
         </div>
       </section>
 

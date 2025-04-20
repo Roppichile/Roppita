@@ -58,7 +58,13 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
-    "@radix-ui/react-icons": "latest"
+    "@auth/core": "latest",
+    "nodemailer": "latest",
+    "@radix-ui/react-icons": "latest",
+    "next-auth": "latest",
+    "@supabase/supabase-js": "latest",
+    "firebase": "latest",
+    "firebase-admin": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
