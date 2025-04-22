@@ -6,16 +6,18 @@ import { supabase } from "@/lib/supabase"
 interface Product {
   id: number
   name: string
+  description: string
   price: number
-  image: string
-  category: string
+  category_id: number
+  images: string[]
+  status: string
+  seller_id: string
   condition: string
-  seller: string
-  rating: number
+  created_at: string
 }
 
 interface ProductFilters {
-  category?: string
+  category_id?: number
   condition?: string
   minPrice?: number
   maxPrice?: number
@@ -33,11 +35,18 @@ export function useProducts() {
       setError(null)
 
       // Iniciar la consulta
-      let query = supabase.from("products").select("*")
+      let query = supabase
+        .from("products")
+        .select(`
+          *,
+          categories(name),
+          profiles(first_name, last_name)
+        `)
+        .eq("status", "active")
 
       // Aplicar filtros
-      if (filters.category) {
-        query = query.eq("category", filters.category)
+      if (filters.category_id) {
+        query = query.eq("category_id", filters.category_id)
       }
 
       if (filters.condition) {
@@ -63,47 +72,122 @@ export function useProducts() {
         throw new Error(error.message)
       }
 
-      // Para propósitos de demostración, si no hay datos, usamos datos de ejemplo
-      if (data && data.length > 0) {
-        setProducts(data as Product[])
-      } else {
-        // Datos de ejemplo
-        setProducts([
-          {
-            id: 1,
-            name: "Camisa de algodón orgánico",
-            price: 29.99,
-            image: "/placeholder.svg?height=300&width=300",
-            category: "Hombre",
-            condition: "Nuevo",
-            seller: "EcoFashion",
-            rating: 4.8,
-          },
-          {
-            id: 2,
-            name: "Vestido de lino reciclado",
-            price: 45.5,
-            image: "/placeholder.svg?height=300&width=300",
-            category: "Mujer",
-            condition: "Nuevo",
-            seller: "GreenStyle",
-            rating: 4.7,
-          },
-          // Más productos de ejemplo...
-        ])
-      }
+      setProducts(data || [])
+      return data
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar productos")
+      const errorMessage = err instanceof Error ? err.message : "Error al cargar productos"
+      setError(errorMessage)
       console.error(err)
+      return []
     } finally {
       setLoading(false)
     }
   }, [])
+
+  const getProductById = async (id: number) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          *,
+          categories(name),
+          profiles(first_name, last_name)
+        `)
+        .eq("id", id)
+        .single()
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      return data
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Error al cargar el producto"
+      setError(errorMessage)
+      console.error(err)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const createProduct = async (productData: Omit<Product, "id" | "created_at">) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const { data, error } = await supabase.from("products").insert([productData]).select()
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      return data[0]
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Error al crear el producto"
+      setError(errorMessage)
+      console.error(err)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateProduct = async (id: number, updates: Partial<Product>) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const { data, error } = await supabase.from("products").update(updates).eq("id", id).select()
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      return data[0]
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Error al actualizar el producto"
+      setError(errorMessage)
+      console.error(err)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const deleteProduct = async (id: number) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const { error } = await supabase.from("products").delete().eq("id", id)
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      return true
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Error al eliminar el producto"
+      setError(errorMessage)
+      console.error(err)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return {
     products,
     loading,
     error,
     fetchProducts,
+    getProductById,
+    createProduct,
+    updateProduct,
+    deleteProduct,
   }
 }

@@ -1,7 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
+import RegisterForm from "@/components/register-form"
 
 export default function RegisterPage() {
   return (
@@ -25,64 +24,7 @@ export default function RegisterPage() {
               <p className="text-gray-600 mt-2">Únete a la comunidad de Roppita</p>
             </div>
 
-            <form className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="first-name" className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre
-                  </label>
-                  <Input id="first-name" type="text" required />
-                </div>
-                <div>
-                  <label htmlFor="last-name" className="block text-sm font-medium text-gray-700 mb-1">
-                    Apellido
-                  </label>
-                  <Input id="last-name" type="text" required />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Correo electrónico
-                </label>
-                <Input id="email" type="email" required />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Contraseña
-                </label>
-                <Input id="password" type="password" required />
-                <p className="text-xs text-gray-500 mt-1">
-                  La contraseña debe tener al menos 8 caracteres, incluyendo una letra mayúscula y un número.
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirmar contraseña
-                </label>
-                <Input id="confirm-password" type="password" required />
-              </div>
-
-              <div className="flex items-start space-x-2">
-                <Checkbox id="terms" className="mt-1" />
-                <label htmlFor="terms" className="text-sm text-gray-600">
-                  Acepto los{" "}
-                  <Link href="/terminos-y-condiciones" className="text-green-600 hover:text-green-800">
-                    términos y condiciones
-                  </Link>{" "}
-                  y la{" "}
-                  <Link href="/politica-de-privacidad" className="text-green-600 hover:text-green-800">
-                    política de privacidad
-                  </Link>
-                </label>
-              </div>
-
-              <Button type="submit" className="w-full">
-                Crear cuenta
-              </Button>
-            </form>
+            <RegisterForm />
 
             <div className="mt-6">
               <div className="relative">

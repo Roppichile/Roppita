@@ -1,6 +1,3 @@
-"use client"
-
-import { useEffect } from "react"
 import Link from "next/link"
 import { Search, User, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -8,19 +5,9 @@ import { Input } from "@/components/ui/input"
 import MainMenu from "@/components/main-menu"
 import FeaturedUsers from "@/components/featured-users"
 import Footer from "@/components/footer"
-import ProductCard from "@/components/product-card"
-import { useFirebaseProducts } from "@/hooks/use-firebase-products"
-import { useAuth } from "@/contexts/auth-context"
+import ProductGrid from "@/components/product-grid"
 
 export default function Home() {
-  const { products, loading, error, fetchProducts } = useFirebaseProducts()
-  const { user } = useAuth()
-
-  useEffect(() => {
-    // Cargar productos al montar el componente
-    fetchProducts({ category: "featured" })
-  }, [fetchProducts])
-
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -43,29 +30,18 @@ export default function Home() {
 
             {/* Auth Buttons */}
             <div className="flex items-center gap-4">
-              {user ? (
-                <Link href="/dashboard">
-                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span className="hidden md:inline">Mi cuenta</span>
-                  </Button>
-                </Link>
-              ) : (
-                <>
-                  <Link href="/login">
-                    <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      <span className="hidden md:inline">Iniciar sesión</span>
-                    </Button>
-                  </Link>
-                  <Link href="/register">
-                    <Button size="sm" className="flex items-center gap-2">
-                      <ShoppingBag className="h-4 w-4" />
-                      <span className="hidden md:inline">Registrarse</span>
-                    </Button>
-                  </Link>
-                </>
-              )}
+              <Link href="/login">
+                <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="hidden md:inline">Iniciar sesión</span>
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button size="sm" className="flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4" />
+                  <span className="hidden md:inline">Registrarse</span>
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -114,29 +90,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold mb-8 text-center">Novedades</h2>
 
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
-              <p className="mt-2 text-gray-600">Cargando productos...</p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-8 text-red-600">
-              <p>{error}</p>
-              <Button variant="outline" className="mt-4" onClick={() => fetchProducts()}>
-                Intentar de nuevo
-              </Button>
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {products.length > 0 ? (
-                products.map((product) => <ProductCard key={product.id} product={product} />)
-              ) : (
-                <div className="col-span-4 text-center py-8">
-                  <p className="text-gray-600">No se encontraron productos.</p>
-                </div>
-              )}
-            </div>
-          )}
+          <ProductGrid />
 
           <div className="text-center mt-8">
             <Button variant="outline" size="lg">
