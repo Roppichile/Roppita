@@ -62,9 +62,7 @@
     "nodemailer": "latest",
     "@radix-ui/react-icons": "latest",
     "next-auth": "latest",
-    "@supabase/supabase-js": "latest",
-    "firebase": "latest",
-    "firebase-admin": "latest"
+    "@supabase/supabase-js": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

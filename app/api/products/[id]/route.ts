@@ -1,81 +1,96 @@
 import { NextResponse } from "next/server"
-
-// Simulación de una base de datos de productos (mismos datos que en route.ts)
-const products = [
-  {
-    id: 1,
-    name: "Camisa de algodón orgánico",
-    price: 29.99,
-    image: "/placeholder.svg?height=300&width=300",
-    category: "Hombre",
-    subcategory: "Camisas",
-    condition: "Nuevo",
-    seller: "EcoFashion",
-    rating: 4.8,
-    description: "Camisa de algodón 100% orgánico, perfecta para cualquier ocasión.",
-    stock: 15,
-  },
-  {
-    id: 2,
-    name: "Vestido de lino reciclado",
-    price: 45.5,
-    image: "/placeholder.svg?height=300&width=300",
-    category: "Mujer",
-    subcategory: "Vestidos",
-    condition: "Nuevo",
-    seller: "GreenStyle",
-    rating: 4.7,
-    description: "Vestido elegante hecho con lino reciclado, ideal para el verano.",
-    stock: 8,
-  },
-  // Más productos...
-]
+import { supabase } from "@/lib/supabase"
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const id = Number.parseInt(params.id)
-  const product = products.find((p) => p.id === id)
+  try {
+    const id = Number.parseInt(params.id)
 
-  if (!product) {
-    return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 })
+    const { data, error } = await supabase
+      .from("products")
+      .select(`
+        *,
+        categories(name),
+        profiles(first_name, last_name)
+      `)
+      .eq("id", id)
+      .single()
+
+    if (error) {
+      return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 })
+    }
+
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error("Error al obtener producto:", error)
+    return NextResponse.json({ error: "Error al obtener producto" }, { status: 500 })
   }
-
-  return NextResponse.json(product)
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
     const id = Number.parseInt(params.id)
-    const body = await request.json()
+    const updates = await request.json()
 
-    const productIndex = products.findIndex((p) => p.id === id)
+    // Verificar autenticación mediante Supabase
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-    if (productIndex === -1) {
-      return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 })
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    // En una aplicación real, aquí actualizarías en la base de datos
-    const updatedProduct = {
-      ...products[productIndex],
-      ...body,
-      id, // Aseguramos que el ID no cambie
+    // Verificar que el producto pertenece al usuario
+    const { data: product } = await supabase.from("products").select("seller_id").eq("id", id).single()
+
+    if (!product || product.seller_id !== session.user.id) {
+      return NextResponse.json({ error: "No autorizado para modificar este producto" }, { status: 403 })
     }
 
-    return NextResponse.json(updatedProduct)
+    // Actualizar el producto
+    const { data, error } = await supabase.from("products").update(updates).eq("id", id).select()
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return NextResponse.json(data[0])
   } catch (error) {
-    return NextResponse.json({ error: "Error al actualizar el producto" }, { status: 400 })
+    console.error("Error al actualizar producto:", error)
+    return NextResponse.json({ error: "Error al actualizar el producto" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  const id = Number.parseInt(params.id)
+  try {
+    const id = Number.parseInt(params.id)
 
-  const productIndex = products.findIndex((p) => p.id === id)
+    // Verificar autenticación mediante Supabase
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-  if (productIndex === -1) {
-    return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 })
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
+
+    // Verificar que el producto pertenece al usuario
+    const { data: product } = await supabase.from("products").select("seller_id").eq("id", id).single()
+
+    if (!product || product.seller_id !== session.user.id) {
+      return NextResponse.json({ error: "No autorizado para eliminar este producto" }, { status: 403 })
+    }
+
+    // Eliminar el producto
+    const { error } = await supabase.from("products").delete().eq("id", id)
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("Error al eliminar producto:", error)
+    return NextResponse.json({ error: "Error al eliminar el producto" }, { status: 500 })
   }
-
-  // En una aplicación real, aquí eliminarías de la base de datos
-
-  return NextResponse.json({ success: true })
 }

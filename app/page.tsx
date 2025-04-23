@@ -1,3 +1,4 @@
+"use client"
 import Link from "next/link"
 import { Search, User, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -6,8 +7,11 @@ import MainMenu from "@/components/main-menu"
 import FeaturedUsers from "@/components/featured-users"
 import Footer from "@/components/footer"
 import ProductGrid from "@/components/product-grid"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function Home() {
+  const { user } = useAuth()
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -30,18 +34,29 @@ export default function Home() {
 
             {/* Auth Buttons */}
             <div className="flex items-center gap-4">
-              <Link href="/login">
-                <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  <span className="hidden md:inline">Iniciar sesión</span>
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button size="sm" className="flex items-center gap-2">
-                  <ShoppingBag className="h-4 w-4" />
-                  <span className="hidden md:inline">Registrarse</span>
-                </Button>
-              </Link>
+              {user ? (
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span className="hidden md:inline">Mi cuenta</span>
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span className="hidden md:inline">Iniciar sesión</span>
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button size="sm" className="flex items-center gap-2">
+                      <ShoppingBag className="h-4 w-4" />
+                      <span className="hidden md:inline">Registrarse</span>
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server"
-import { db } from "@/lib/firebase-admin"
-import { auth } from "@/lib/firebase-admin"
-import { cookies } from "next/headers"
+import { supabase } from "@/lib/supabase"
 
 // Obtener productos
 export async function GET(request: Request) {
@@ -14,41 +12,43 @@ export async function GET(request: Request) {
     const search = searchParams.get("search")
 
     // Construir la consulta
-    let query = db.collection("products").where("status", "==", "active")
+    let query = supabase
+      .from("products")
+      .select(`
+        *,
+        categories(name),
+        profiles(first_name, last_name)
+      `)
+      .eq("status", "active")
 
     if (category) {
-      query = query.where("category", "==", category)
+      query = query.eq("category_id", category)
     }
 
     if (condition) {
-      query = query.where("condition", "==", condition)
+      query = query.eq("condition", condition)
+    }
+
+    if (minPrice) {
+      query = query.gte("price", Number.parseFloat(minPrice))
+    }
+
+    if (maxPrice) {
+      query = query.lte("price", Number.parseFloat(maxPrice))
+    }
+
+    if (search) {
+      query = query.ilike("name", `%${search}%`)
     }
 
     // Ejecutar la consulta
-    const snapshot = await query.get()
+    const { data, error } = await query
 
-    // Procesar los resultados
-    const products = []
-    for (const doc of snapshot.docs) {
-      const data = doc.data()
-
-      // Aplicar filtros de precio después de obtener los datos
-      // (Firestore no permite múltiples filtros de rango en una consulta)
-      if (minPrice && data.price < Number.parseFloat(minPrice)) continue
-      if (maxPrice && data.price > Number.parseFloat(maxPrice)) continue
-
-      // Filtro de búsqueda simple
-      if (search && !data.name.toLowerCase().includes(search.toLowerCase())) continue
-
-      products.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate().toISOString(),
-        updatedAt: data.updatedAt?.toDate().toISOString(),
-      })
+    if (error) {
+      throw new Error(error.message)
     }
 
-    return NextResponse.json(products)
+    return NextResponse.json(data || [])
   } catch (error) {
     console.error("Error al obtener productos:", error)
     return NextResponse.json({ error: "Error al obtener productos" }, { status: 500 })
@@ -58,35 +58,34 @@ export async function GET(request: Request) {
 // Crear un nuevo producto
 export async function POST(request: Request) {
   try {
-    // Verificar autenticación
-    const sessionCookie = cookies().get("session")?.value
-    if (!sessionCookie) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
-
-    // Verificar token
-    const decodedToken = await auth.verifySessionCookie(sessionCookie)
-    const userId = decodedToken.uid
-
     // Obtener datos del producto
     const productData = await request.json()
+
+    // Verificar autenticación mediante Supabase
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+    }
 
     // Añadir información adicional
     const newProduct = {
       ...productData,
-      sellerId: userId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      seller_id: session.user.id,
+      created_at: new Date().toISOString(),
       status: "active",
     }
 
-    // Guardar en Firestore
-    const docRef = await db.collection("products").add(newProduct)
+    // Guardar en Supabase
+    const { data, error } = await supabase.from("products").insert([newProduct]).select()
 
-    return NextResponse.json({
-      id: docRef.id,
-      ...newProduct,
-    })
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return NextResponse.json(data[0])
   } catch (error) {
     console.error("Error al crear producto:", error)
     return NextResponse.json({ error: "Error al crear producto" }, { status: 500 })
